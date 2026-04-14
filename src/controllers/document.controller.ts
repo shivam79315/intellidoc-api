@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
 import { uploadDocumentService } from "../services/document.service";
+import { processDocument } from "../services/processDocument.service";
 
 type UploadedFile = {
   originalname: string;
@@ -33,6 +34,7 @@ export const uploadDocument = async (
     );
 
     res.status(201).json(document);
+    processDocument(document._id.toString()).catch(console.error);
   } catch (error: any) {
     res.status(400).json({
       message: error.message || "Failed to upload document",
