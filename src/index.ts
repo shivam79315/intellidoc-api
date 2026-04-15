@@ -6,6 +6,7 @@ import { env } from "./config/env";
 
 import authRoutes from "./routes/auth.routes";
 import documentRoutes from "./routes/document.routes";
+import chatRoutes from "./routes/chat.routes";
 import userRoutes from "./routes/user.routes";
 
 import { errorHandler, AppError } from "./middleware/errorHandler";
@@ -28,6 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
+app.use("/api/chats", chatRoutes);
 app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
