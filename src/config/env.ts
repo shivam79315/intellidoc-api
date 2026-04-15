@@ -22,4 +22,7 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
 
   IS_PRODUCTION: process.env.NODE_ENV === "production",
+
+  GROQ_API_KEY: process.env.GROQ_API_KEY || "",
+  GROQ_BASE_URL: process.env.GROQ_BASE_URL || "https://api.groq.com",
 };

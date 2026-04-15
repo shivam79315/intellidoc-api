@@ -1,5 +1,12 @@
+// src/services/document.service.ts
+
 import mongoose from "mongoose";
-import { createDocument } from "../repositories/document.repository";
+import {
+  createDocument,
+  findDocumentsByUserId,
+  findDocumentByIdAndUserId,
+  deleteDocumentByIdAndUserId,
+} from "../repositories/document.repository";
 
 type UploadedFile = {
   originalname: string;
@@ -22,6 +29,44 @@ export const uploadDocumentService = async (
     path: file.path,
     status: "pending",
   });
+
+  return document;
+};
+
+export const getDocumentsService = async (
+  userId: string
+) => {
+  return await findDocumentsByUserId(userId);
+};
+
+export const getDocumentService = async (
+  userId: string,
+  documentId: string
+) => {
+  const document = await findDocumentByIdAndUserId(
+    userId,
+    documentId
+  );
+
+  if (!document) {
+    throw new Error("Document not found");
+  }
+
+  return document;
+};
+
+export const deleteDocumentService = async (
+  userId: string,
+  documentId: string
+) => {
+  const document = await deleteDocumentByIdAndUserId(
+    userId,
+    documentId
+  );
+
+  if (!document) {
+    throw new Error("Document not found");
+  }
 
   return document;
 };
