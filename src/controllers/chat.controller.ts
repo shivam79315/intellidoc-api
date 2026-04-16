@@ -9,14 +9,19 @@ import {
 } from "../services/chat.service";
 
 export const createChat = async (req: Request, res: Response) => {
-  const { documentId, title } = req.body;
+  const { documentIds, title } = req.body;
   const userId = (req as any).userId;
 
-  if (!documentId || !title) {
-    throw new AppError(400, "documentId and title required");
+  if (
+    !documentIds ||
+    !Array.isArray(documentIds) ||
+    documentIds.length === 0 ||
+    !title
+  ) {
+    throw new AppError(400, "documentIds array and title required");
   }
 
-  const chat = await createChatService(userId, documentId, title);
+  const chat = await createChatService(userId, documentIds, title);
 
   res.status(201).json({ data: chat });
 };

@@ -9,7 +9,7 @@ export interface IMessage {
 
 export interface IChat extends MongooseDocument {
   userId: Types.ObjectId;
-  documentId: Types.ObjectId;
+  documentIds: Types.ObjectId[];
   title: string;
   messages: IMessage[];
   createdAt: Date;
@@ -24,12 +24,13 @@ const chatSchema = new Schema<IChat>(
       required: true,
       index: true,
     },
-    documentId: {
-      type: Schema.Types.ObjectId,
-      ref: "Document",
-      required: true,
-      index: true,
-    },
+    documentIds: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Document",
+        index: true,
+      },
+    ],
     title: {
       type: String,
       required: true,

@@ -7,22 +7,22 @@ import { groqChat } from "./groq.service";
 
 export const createChatService = async (
   userId: string,
-  documentId: string,
+  documentIds: string[],
   title: string
 ) => {
-  const doc = await Document.findById(documentId);
+  const docs = await Document.find({
+    _id: { $in: documentIds },
+    userId,
+    status: "ready",
+  });
 
-  if (!doc || doc.userId.toString() !== userId) {
+  if (docs.length !== documentIds.length) {
     throw new AppError(404, "Document not found");
-  }
-
-  if (doc.status !== "ready") {
-    throw new AppError(400, "Document not processed yet");
   }
 
   const chat = await Chat.create({
     userId,
-    documentId,
+    documentIds,
     title,
     messages: [],
   });
@@ -41,28 +41,35 @@ export const sendMessageService = async (
     throw new AppError(404, "Chat not found");
   }
 
-  // Get user embedding
+  if (!chat.documentIds || chat.documentIds.length === 0) {
+    throw new AppError(400, "No documents attached to this chat");
+  }
+
+  // Create embedding from user message
   const userEmbedding = await createEmbedding(userMessage);
 
-  // Find similar chunks
   const similarChunks = await findSimilarChunks(
-    chat.documentId.toString(),
+    chat.documentIds.map((id) => id.toString()),
     userEmbedding,
     5
   );
 
-  const context = similarChunks.map((c) => c.text).join("\n\n");
+  // Build context for LLM
+  const context = similarChunks.length
+    ? similarChunks.map((chunk) => chunk.text).join("\n\n")
+    : "No relevant context found in uploaded documents.";
 
-  // Get Groq response
+  // Generate assistant response
   const assistantMessage = await groqChat(userMessage, context);
 
-  // Save messages
+  // Save user message
   chat.messages.push({
     role: "user",
     content: userMessage,
-    relatedChunks: similarChunks.map((c) => c._id),
+    relatedChunks: similarChunks.map((chunk) => chunk._id),
   });
 
+  // Save assistant message
   chat.messages.push({
     role: "assistant",
     content: assistantMessage,
@@ -100,11 +107,17 @@ export const deleteChatService = async (chatId: string, userId: string) => {
 };
 
 const findSimilarChunks = async (
-  documentId: string,
+  documentIds: string[],
   embedding: number[],
   limit: number
 ) => {
-  const chunks = await Chunk.find({ documentId });
+  if (!documentIds || documentIds.length === 0) {
+    return [];
+  }
+
+  const chunks = await Chunk.find({
+    documentId: { $in: documentIds },
+  });
 
   const scored = chunks.map((chunk) => ({
     ...chunk.toObject(),
