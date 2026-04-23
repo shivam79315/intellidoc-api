@@ -7,7 +7,10 @@ import {
   getChats,
   getChat,
   deleteChat,
+  uploadChatDocument
 } from "../controllers/chat.controller";
+
+import upload from "../middleware/upload";
 
 const router = express.Router();
 
@@ -17,6 +20,7 @@ router.post("/", asyncHandler(createChat));
 router.get("/", asyncHandler(getChats));
 router.get("/:chatId", asyncHandler(getChat));
 router.post("/:chatId/message", asyncHandler(sendMessage));
+router.post("/:chatId/documents", upload.single("file"), asyncHandler(uploadChatDocument));
 router.delete("/:chatId", asyncHandler(deleteChat));
 
 export default router;

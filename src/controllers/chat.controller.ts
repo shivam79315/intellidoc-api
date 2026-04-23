@@ -1,24 +1,35 @@
 import { Request, Response } from "express";
 import { AppError } from "../middleware/errorHandler";
+import { AuthRequest } from "../middleware/auth";
 import {
   createChatService,
   sendMessageService,
+  uploadChatDocumentService,
   getChatsService,
   getChatService,
   deleteChatService,
 } from "../services/chat.service";
 
+import { processDocument } from "../services/processDocument.service";
+
+type UploadedFile = {
+  originalname: string;
+  filename: string;
+  mimetype: string;
+  size: number;
+  path: string;
+};
+
 export const createChat = async (req: Request, res: Response) => {
   const { documentIds, title } = req.body;
   const userId = (req as any).userId;
 
-  if (
-    !documentIds ||
-    !Array.isArray(documentIds) ||
-    documentIds.length === 0 ||
-    !title
-  ) {
-    throw new AppError(400, "documentIds array and title required");
+  if (!title) {
+    throw new AppError(400, "title required");
+  }
+
+  if (documentIds && !Array.isArray(documentIds)) {
+    throw new AppError(400, "documentIds must be array");
   }
 
   const chat = await createChatService(userId, documentIds, title);
@@ -38,6 +49,45 @@ export const sendMessage = async (req: Request<{ chatId: string }>, res: Respons
   const updatedChat = await sendMessageService(chatId, userId, message);
 
   res.status(200).json({ data: updatedChat });
+};
+
+export const uploadChatDocument = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  const request = req as AuthRequest & {
+    file?: UploadedFile;
+    params: { chatId: string };
+  };
+
+  if (!request.userId) {
+    throw new AppError(
+      401,
+      "Not authorized"
+    );
+  }
+
+  if (!request.file) {
+    throw new AppError(
+      400,
+      "File is required"
+    );
+  }
+
+  const result =
+    await uploadChatDocumentService(
+      request.params.chatId,
+      request.userId,
+      request.file
+    );
+
+  processDocument(
+    result.document._id.toString()
+  ).catch(console.error);
+
+  res.status(201).json({
+    data: result,
+  });
 };
 
 export const getChats = async (req: Request, res: Response) => {
