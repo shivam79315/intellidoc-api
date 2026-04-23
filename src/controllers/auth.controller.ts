@@ -35,15 +35,9 @@ export const login = async (req: Request, res: Response) => {
 
     const { token, user } = await loginUser(email, password);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
     res.status(200).json({
       message: "Login successful",
+      token,
       user: {
         _id: user._id,
         name: user.name,
@@ -58,12 +52,6 @@ export const login = async (req: Request, res: Response) => {
 };
 
 export const logout = (_req: Request, res: Response) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: env.IS_PRODUCTION,
-    sameSite: "lax",
-  });
-
   res.status(200).json({
     message: "Logged out successfully",
   });
