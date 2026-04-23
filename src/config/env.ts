@@ -14,7 +14,7 @@ const requiredEnv = (key: string): string => {
 };
 
 export const env = {
-  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
+  CLIENT_URLS: process.env.CLIENT_URLS || 'http://localhost:3000',
   MONGO_URI: requiredEnv("MONGO_URI"),
   JWT_SECRET: requiredEnv("JWT_SECRET"),
 

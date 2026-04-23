@@ -15,8 +15,21 @@ const app = express();
 
 connectDB();
 
+const allowedOrigins = env.CLIENT_URLS
+  .split(',')
+  .map(url => url.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: env.CLIENT_URL || 'http://localhost:3000',
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
