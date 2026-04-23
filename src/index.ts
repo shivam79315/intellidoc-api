@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import cookieParser from 'cookie-parser'
 import connectDB from "./config/db";
 import { env } from "./config/env";
 
@@ -35,7 +34,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 
-app.use(cookieParser())
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
