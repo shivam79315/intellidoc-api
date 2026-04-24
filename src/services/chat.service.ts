@@ -5,9 +5,7 @@ import { createEmbedding } from "./embedding.service";
 import { groqChat } from "./groq.service";
 
 import {
-  detectChatIntent,
-  getQuickReply,
-  getGeneralReply,
+  detectChatIntent
 } from "../utils/chatIntent";
 
 import {
@@ -160,9 +158,38 @@ export const sendMessageService =
       );
     }
 
+    const docNames =
+      chat.messages
+        .filter(
+          (msg: any) =>
+            msg.type ===
+              "document" &&
+            msg.document
+              ?.originalName
+        )
+        .map(
+          (msg: any) =>
+            msg.document
+              .originalName
+        );
+
+    const historyTexts =
+      chat.messages
+        .filter(
+          (msg: any) =>
+            msg.content?.trim()
+        )
+        .slice(-6)
+        .map(
+          (msg: any) =>
+            msg.content
+        );
+
     const intent =
-      detectChatIntent(
-        userMessage
+      await detectChatIntent(
+        userMessage,
+        historyTexts,
+        docNames
       );
 
     chat.messages.push({
@@ -170,34 +197,44 @@ export const sendMessageService =
       content: userMessage,
     });
 
-    if (
-      intent === "casual"
-    ) {
-      chat.messages.push({
-        role: "assistant",
-        content:
-          getQuickReply(
-            userMessage
-          ),
-      });
+    const history =
+      chat.messages
+        .filter(
+          (msg: any) =>
+            msg.type !==
+              "document" &&
+            msg.content?.trim()
+        )
+        .slice(-10)
+        .map((msg: any) => ({
+          role: msg.role,
+          content:
+            msg.content,
+        }));
 
-      await saveChat(chat);
-      return chat;
-    }
-
+    // casual/general -> normal AI chat
     if (
+      intent === "casual" ||
       intent === "general"
     ) {
+      const assistantMessage =
+        await groqChat(
+          userMessage,
+          "",
+          history
+        );
+
       chat.messages.push({
         role: "assistant",
         content:
-          getGeneralReply(),
+          assistantMessage,
       });
 
       await saveChat(chat);
       return chat;
     }
 
+    // no documents uploaded
     if (
       !chat.documentIds ||
       chat.documentIds.length ===
@@ -206,13 +243,14 @@ export const sendMessageService =
       chat.messages.push({
         role: "assistant",
         content:
-          "I'm your document assistant. Please upload a file first.",
+          "Please upload a document first.",
       });
 
       await saveChat(chat);
       return chat;
     }
 
+    // document query
     const embedding =
       await createEmbedding(
         userMessage
@@ -236,22 +274,7 @@ export const sendMessageService =
                 chunk.text
             )
             .join("\n\n")
-        : "No relevant context found.";
-
-    const history =
-      chat.messages
-        .filter(
-          (msg: any) =>
-            msg.type !==
-              "document" &&
-            msg.content?.trim()
-        )
-        .slice(-10)
-        .map((msg: any) => ({
-          role: msg.role,
-          content:
-            msg.content,
-        }));
+        : "";
 
     const assistantMessage =
       await groqChat(

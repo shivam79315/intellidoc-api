@@ -11,7 +11,7 @@ import {
   deleteChatService,
 } from "../services/chat.service";
 
-import { processDocument } from "../services/processDocument.service";
+import { addProcessDocumentJob } from "../jobs/document.job";
 
 type UploadedFile = {
   originalname: string;
@@ -75,16 +75,15 @@ export const uploadChatDocument = async (
     );
   }
 
-  const result =
-    await uploadChatDocumentService(
+  const result = await uploadChatDocumentService(
       request.params.chatId,
       request.userId,
       request.file
     );
 
-  processDocument(
+  await addProcessDocumentJob(
     result.document._id.toString()
-  ).catch(console.error);
+  );
 
   res.status(201).json({
     data: result,
