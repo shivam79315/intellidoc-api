@@ -6,6 +6,7 @@ import {
   sendMessageService,
   uploadChatDocumentService,
   getChatsService,
+  getChatDocumentsService,
   getChatService,
   deleteChatService,
 } from "../services/chat.service";
@@ -96,6 +97,24 @@ export const getChats = async (req: Request, res: Response) => {
   const chats = await getChatsService(userId);
 
   res.status(200).json({ data: chats });
+};
+
+export const getChatDocuments = async (
+  req: Request<{ chatId: string }>,
+  res: Response
+) => {
+  const { chatId } = req.params;
+  const userId = (req as any).userId;
+
+  if (!userId) {
+    throw new AppError(401, "Not authorized");
+  }
+
+  const documents = await getChatDocumentsService(chatId, userId);
+
+  res.status(200).json({
+    data: documents,
+  });
 };
 
 export const getChat = async (req: Request<{ chatId: string }>, res: Response) => {

@@ -34,8 +34,10 @@ export const findChatById = async (chatId: string) => {
 
 export const findChatsByUserId = async (userId: string) => {
   return await Chat.find({ userId })
-    .select("title createdAt documentIds")
-    .sort({ createdAt: -1 });
+    .select(
+      "title documentIds messages createdAt updatedAt"
+    )
+    .sort({ updatedAt: -1 });
 };
 
 export const findChatByIdWithChunks = async (chatId: string) => {

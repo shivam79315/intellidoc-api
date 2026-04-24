@@ -5,6 +5,7 @@ import {
   createChat,
   sendMessage,
   getChats,
+  getChatDocuments,
   getChat,
   deleteChat,
   uploadChatDocument
@@ -19,6 +20,7 @@ router.use(authMiddleware);
 router.post("/", asyncHandler(createChat));
 router.get("/", asyncHandler(getChats));
 router.get("/:chatId", asyncHandler(getChat));
+router.get("/:chatId/documents", asyncHandler(getChatDocuments));
 router.post("/:chatId/message", asyncHandler(sendMessage));
 router.post("/:chatId/documents", upload.single("file"), asyncHandler(uploadChatDocument));
 router.delete("/:chatId", asyncHandler(deleteChat));
