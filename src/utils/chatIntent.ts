@@ -1,112 +1,67 @@
-// src/utils/chatIntent.ts
+import Groq from "groq-sdk";
+import { env } from "../config/env";
 
-export type ChatIntent =
+const groq = new Groq({
+  apiKey: env.GROQ_API_KEY,
+});
+
+export type AIIntent =
   | "casual"
   | "document"
   | "general";
 
-export const detectChatIntent = (
-  message: string
-): ChatIntent => {
-  const text =
-    message.trim().toLowerCase();
+export const detectChatIntent =
+  async (
+    message: string,
+    history: string[],
+    docNames: string[]
+  ): Promise<AIIntent> => {
+    const prompt = `
+Classify the user's latest message into one category:
 
-  const casualInputs = [
-    "hi",
-    "hello",
-    "hey",
-    "thanks",
-    "thank you",
-    "ok",
-    "okay",
-    "cool",
-    "nice",
-    "bye",
-  ];
+1. casual
+2. document
+3. general
 
-  if (
-    casualInputs.includes(text)
-  ) {
-    return "casual";
-  }
+Rules:
+- If asking about uploaded files/resume/pdf/docx/content/summary/explain => document
+- If mentions document names => document
+- Greetings/thanks => casual
+- Everything else => general
 
-  const docKeywords = [
-    "document",
-    "doc",
-    "pdf",
-    "file",
-    "page",
-    "summarize",
-    "summary",
-    "uploaded",
-    "what is in",
-    "explain",
-    "section",
-    "content",
-    "chat summary",
-  ];
+Documents:
+${docNames.join("\n")}
 
-  if (
-    docKeywords.some((word) =>
-      text.includes(word)
-    )
-  ) {
-    return "document";
-  }
+History:
+${history.join("\n")}
 
-  return "general";
-};
+Latest message:
+${message}
 
-export const getQuickReply = (
-    message: string
-  ): string => {
-    const text =
-      message.trim().toLowerCase();
-  
-    if (
-      /(thank|thanks|thx)/.test(
-        text
-      )
-    ) {
-      return "You're welcome.";
-    }
-  
-    if (
-      /(hi|hello|hey)/.test(
-        text
-      )
-    ) {
-      return "Hello. How can I help with your document?";
-    }
-  
-    if (
-      /(bye|goodbye|see ya)/.test(
-        text
-      )
-    ) {
-      return "Goodbye.";
-    }
-  
-    if (
-      /(anything else|more|what else)/.test(
-        text
-      )
-    ) {
-      return "I can summarize the document, explain sections, extract key points, or answer more questions.";
-    }
-  
-    if (
-      /(ok|okay|alright|got it|sure|cool|nice)/.test(
-        text
-      )
-    ) {
-      return "Sure. What would you like next?";
-    }
-  
-    return "How can I help?";
-};
+Reply ONLY one word:
+casual
+document
+general
+`;
 
-export const getGeneralReply =
-  (): string => {
-    return "I'm designed to help with your uploaded documents. Please ask about your current file or upload another document.";
+    const res =
+      await groq.chat.completions.create({
+        model:
+          "llama-3.3-70b-versatile",
+        temperature: 0,
+        max_tokens: 5,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      });
+
+    return (
+      res.choices[0]
+        ?.message?.content
+        ?.trim()
+        .toLowerCase() as AIIntent
+    );
   };

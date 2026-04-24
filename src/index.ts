@@ -55,6 +55,6 @@ app.use((req, res, next) => {
 // Error handler
 app.use(errorHandler);
 
-app.listen(parseInt(process.env.PORT || "5000"), () => {
+app.listen(parseInt(env.PORT || "5000"), () => {
   console.log(`Server running`);
 });
