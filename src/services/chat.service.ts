@@ -88,8 +88,7 @@ export const uploadChatDocumentService =
 
     if (
       !chat ||
-      chat.userId.toString() !==
-        userId
+      chat.userId.toString() !== userId
     ) {
       throw new AppError(
         404,
@@ -128,6 +127,18 @@ export const uploadChatDocumentService =
         size: document.size,
       },
     } as any);
+
+    chat.messages.push({
+      role: "assistant",
+      content: `Document "${document.originalName}" uploaded successfully.
+
+I'm reading the file now. You can ask me things like:
+• Summarize this document
+• Key skills
+• Important dates
+• Experience details
+• Explain section 2`,
+    });
 
     await saveChat(chat);
 
@@ -212,7 +223,7 @@ export const sendMessageService =
             msg.content,
         }));
 
-    // casual/general -> normal AI chat
+    // casual/general chat
     if (
       intent === "casual" ||
       intent === "general"
@@ -221,7 +232,8 @@ export const sendMessageService =
         await groqChat(
           userMessage,
           "",
-          history
+          history,
+          docNames
         );
 
       chat.messages.push({
@@ -234,7 +246,7 @@ export const sendMessageService =
       return chat;
     }
 
-    // no documents uploaded
+    // no docs uploaded
     if (
       !chat.documentIds ||
       chat.documentIds.length ===
@@ -250,7 +262,7 @@ export const sendMessageService =
       return chat;
     }
 
-    // document query
+    // vector search
     const embedding =
       await createEmbedding(
         userMessage
@@ -276,12 +288,34 @@ export const sendMessageService =
             .join("\n\n")
         : "";
 
-    const assistantMessage =
-      await groqChat(
-        userMessage,
-        context,
-        history
-      );
+    let assistantMessage =
+      "";
+
+    // no readable content found
+    if (!context.trim()) {
+      assistantMessage = `I found your uploaded document${
+        docNames.length
+          ? ` (${docNames.join(
+              ", "
+            )})`
+          : ""
+      }, but I couldn't read its contents.
+
+Possible reasons:
+• Password protected PDF
+• Scanned image PDF
+• Empty file
+• Unsupported format
+• Parsing failed`;
+    } else {
+      assistantMessage =
+        await groqChat(
+          userMessage,
+          context,
+          history,
+          docNames
+        );
+    }
 
     chat.messages.push({
       role: "assistant",
