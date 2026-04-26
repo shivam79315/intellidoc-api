@@ -1,4 +1,5 @@
 import multer from "multer";
+import logger from "../config/logger";
 
 export class AppError extends Error {
   constructor(
@@ -17,9 +18,12 @@ export const errorHandler = (
   res: any,
   next: any
 ) => {
+  const requestId = req.context?.requestId || "unknown";
+
   // Multer errors
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
+      logger.warn("File size limit exceeded", { requestId });
       return res.status(413).json({
         status: "error",
         statusCode: 413,
@@ -37,6 +41,11 @@ export const errorHandler = (
 
   // Custom AppError
   if (err instanceof AppError) {
+    logger.warn("AppError thrown", {
+      requestId,
+      statusCode: err.statusCode,
+      message: err.message,
+    });
     return res.status(
       err.statusCode
     ).json({
@@ -48,7 +57,11 @@ export const errorHandler = (
   }
 
   // Unknown error
-  console.error(err);
+  logger.error("Unhandled error", {
+    requestId,
+    error: err.message,
+    stack: err.stack,
+  });
 
   return res.status(500).json({
     status: "error",

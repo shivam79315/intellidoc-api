@@ -22,23 +22,18 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
-# Coverage
-coverage/
-
 # Temporary files
 tmp/
 temp/
-
-# OS files
-.DS_Store
-Thumbs.db
 
 # IDE/editor settings
 .vscode/
 .idea/
 
 # Optional: uploads or generated files
-uploads/
+storage/logs/
+storage/uploads/
+storage/logs/*.log
 
 # Optional: database files
 *.sqlite

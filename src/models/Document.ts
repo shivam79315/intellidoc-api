@@ -8,7 +8,6 @@ export interface IDocument extends MongooseDocument {
   size: number;
   path: string;
   status: "pending" | "processing" | "ready" | "failed";
-  extractedText?: string;
   errorMessage?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -54,11 +53,6 @@ const documentSchema = new Schema<IDocument>(
       type: String,
       enum: ["pending", "processing", "ready", "failed"],
       default: "pending",
-    },
-
-    extractedText: {
-      type: String,
-      default: "",
     },
 
     errorMessage: {

@@ -3,6 +3,8 @@
 import Groq from "groq-sdk";
 import { AppError } from "../middleware/errorHandler";
 import { env } from "../config/env";
+import logger from "../config/logger";
+import { logError, logInfo } from "../utils/errorLogger";
 
 const groq = new Groq({
   apiKey: env.GROQ_API_KEY,
@@ -14,12 +16,12 @@ type HistoryMessage = {
   content: string;
 };
 
-export const groqChat = async (
-  userMessage: string,
-  context: string,
-  history: HistoryMessage[] = [],
-  docNames: string[] = []
-): Promise<string> => {
+const buildSystemPrompt = (docNames: string[], context: string): string => {
+  logInfo("Step 1: Building system prompt", {
+    docCount: docNames.length,
+    contextLength: context.length,
+  });
+
   try {
     const uploadedDocs =
       docNames.length > 0
@@ -51,6 +53,27 @@ Document Context:
 ${context}
 `;
 
+    logInfo("Step 1 completed: System prompt built", {
+      promptLength: systemPrompt.length,
+    });
+    return systemPrompt;
+  } catch (error) {
+    logError(error, { operation: "buildSystemPrompt" });
+    throw error;
+  }
+};
+
+const buildMessageArray = (
+  userMessage: string,
+  systemPrompt: string,
+  history: HistoryMessage[]
+): any[] => {
+  logInfo("Step 2: Building message array", {
+    userMessageLength: userMessage.length,
+    historyLength: history.length,
+  });
+
+  try {
     const messages: any[] = [
       {
         role: "system",
@@ -68,29 +91,93 @@ ${context}
       },
     ];
 
-    const response =
-      await groq.chat.completions.create({
-        model:
-          "llama-3.3-70b-versatile",
-        temperature: 0.2,
-        max_tokens: 1024,
-        messages,
-      });
+    logInfo("Step 2 completed: Message array built", {
+      totalMessages: messages.length,
+    });
+    return messages;
+  } catch (error) {
+    logError(error, { operation: "buildMessageArray" });
+    throw error;
+  }
+};
+
+const callGroqAPI = async (messages: any[]): Promise<string> => {
+  logInfo("Step 3: Calling Groq API", {
+    messageCount: messages.length,
+    model: "llama-3.3-70b-versatile",
+  });
+
+  try {
+    const startTime = Date.now();
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.2,
+      max_tokens: 1024,
+      messages,
+    });
+
+    const duration = Date.now() - startTime;
+
+    logInfo("Step 3 completed: Groq API response received", {
+      duration,
+      finishReason: response.choices[0]?.finish_reason,
+      responseLength: response.choices[0]?.message?.content?.length,
+    });
 
     return (
-      response.choices[0]
-        ?.message?.content ||
+      response.choices[0]?.message?.content ||
       "I couldn't generate a response."
     );
   } catch (error) {
-    console.error(
-      "Groq API Error:",
-      error
-    );
+    logError(error, {
+      operation: "callGroqAPI",
+      messageCount: messages.length,
+    });
+    throw new AppError(500, "Failed to get response from AI");
+  }
+};
 
-    throw new AppError(
-      500,
-      "Failed to get response from AI"
-    );
+export const groqChat = async (
+  userMessage: string,
+  context: string,
+  history: HistoryMessage[] = [],
+  docNames: string[] = [],
+  requestId?: string
+): Promise<string> => {
+  logInfo("groqChat service started", {
+    requestId,
+    userMessageLength: userMessage.length,
+    contextLength: context.length,
+    docCount: docNames.length,
+    historyLength: history.length,
+  });
+
+  try {
+    // Step 1: Build system prompt
+    const systemPrompt = buildSystemPrompt(docNames, context);
+
+    // Step 2: Build message array
+    const messages = buildMessageArray(userMessage, systemPrompt, history);
+
+    // Step 3: Call Groq API
+    const response = await callGroqAPI(messages);
+
+    logInfo("groqChat service completed successfully", {
+      requestId,
+      responseLength: response.length,
+    });
+
+    return response;
+  } catch (error) {
+    logError(error, {
+      requestId,
+      operation: "groqChat",
+      userMessageLength: userMessage.length,
+      contextLength: context.length,
+      docCount: docNames.length,
+    });
+
+    throw error;
   }
 };

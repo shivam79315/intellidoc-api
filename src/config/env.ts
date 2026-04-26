@@ -26,4 +26,9 @@ export const env = {
 
   GROQ_API_KEY: process.env.GROQ_API_KEY || "",
   GROQ_BASE_URL: process.env.GROQ_BASE_URL || "https://api.groq.com",
+
+  LOG_LEVEL: 'info',
+  BATCH_SIZE: process.env.BATCH_SIZE || "50",
+  EMBEDDING_BATCH_SIZE: process.env.EMBEDDING_BATCH_SIZE || "5",
+  CHUNK_SIZE: process.env.CHUNK_SIZE || "300",
 };
