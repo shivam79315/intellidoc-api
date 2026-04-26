@@ -1,4 +1,5 @@
-// errorHandler.ts
+import multer from "multer";
+
 export class AppError extends Error {
   constructor(
     public statusCode: number,
@@ -10,18 +11,63 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (err: any, req: any, res: any, next: any) => {
-  const { statusCode = 500, message = "Internal Server Error" } = err;
+export const errorHandler = (
+  err: any,
+  req: any,
+  res: any,
+  next: any
+) => {
+  // Multer errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        status: "error",
+        statusCode: 413,
+        message:
+          "Please upload a file up to 30MB",
+      });
+    }
 
-  res.status(statusCode).json({
+    return res.status(400).json({
+      status: "error",
+      statusCode: 400,
+      message: err.message,
+    });
+  }
+
+  // Custom AppError
+  if (err instanceof AppError) {
+    return res.status(
+      err.statusCode
+    ).json({
+      status: "error",
+      statusCode:
+        err.statusCode,
+      message: err.message,
+    });
+  }
+
+  // Unknown error
+  console.error(err);
+
+  return res.status(500).json({
     status: "error",
-    statusCode,
-    message,
+    statusCode: 500,
+    message:
+      "Internal Server Error",
   });
 };
 
-export const asyncHandler = (fn: Function) => {
-  return (req: any, res: any, next: any) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+export const asyncHandler = (
+  fn: Function
+) => {
+  return (
+    req: any,
+    res: any,
+    next: any
+  ) => {
+    Promise.resolve(
+      fn(req, res, next)
+    ).catch(next);
   };
 };
