@@ -3,11 +3,12 @@ import Chunk from "../models/Chunk";
 import { redisConnection } from "../config/redis";
 import { extractTextFromFile } from "../utils/extractor";
 import { chunkText } from "../utils/chunker";
-import { createEmbedding } from "./embedding.service";
+import { createEmbeddingBatch } from "./embedding.service";
 import { logInfo, logError } from "../utils/errorLogger";
+import { env } from "../config/env";
 
-const BATCH_SIZE = 100; // Insert 100 chunks at a time
-const EMBEDDING_BATCH_SIZE = 10; // Create 10 embeddings in parallel
+const BATCH_SIZE = env.BATCH_SIZE; // Insert 100 chunks at a time
+const EMBEDDING_BATCH_SIZE = env.EMBEDDING_BATCH_SIZE; // Create 10 embeddings in parallel
 
 export const processDocument = async (documentId: string) => {
   logInfo("processDocument started", { documentId });
@@ -90,12 +91,8 @@ export const processDocument = async (documentId: string) => {
           Math.min(j + EMBEDDING_BATCH_SIZE, batchChunks.length)
         );
 
-        // Create embeddings in parallel
-        const embeddingPromises = embeddingBatch.map((chunk) =>
-          createEmbedding(chunk.text)
-        );
-
-        const embeddings = await Promise.all(embeddingPromises);
+        const texts = embeddingBatch.map((chunk) => chunk.text);
+        const embeddings = await createEmbeddingBatch(texts);
 
         embeddingBatch.forEach((chunk, idx) => {
           records.push({

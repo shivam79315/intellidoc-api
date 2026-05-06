@@ -13,6 +13,22 @@ const requiredEnv = (key: string): string => {
   return value;
 };
 
+const optionalNumberEnv = (key: string, fallback: number): number => {
+  const value = process.env[key];
+
+  if (!value || value.trim() === "") {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid number environment variable: ${key}`);
+  }
+
+  return parsed;
+};
+
 export const env = {
   CLIENT_URLS: process.env.CLIENT_URLS || 'http://localhost:3000',
   REDIS_URL: process.env.REDIS_URL,
@@ -28,7 +44,7 @@ export const env = {
   GROQ_BASE_URL: process.env.GROQ_BASE_URL || "https://api.groq.com",
 
   LOG_LEVEL: 'info',
-  BATCH_SIZE: process.env.BATCH_SIZE || "50",
-  EMBEDDING_BATCH_SIZE: process.env.EMBEDDING_BATCH_SIZE || "5",
-  CHUNK_SIZE: process.env.CHUNK_SIZE || "300",
+  BATCH_SIZE: optionalNumberEnv("BATCH_SIZE", 50),
+  EMBEDDING_BATCH_SIZE: optionalNumberEnv("EMBEDDING_BATCH_SIZE", 20),
+  CHUNK_SIZE: optionalNumberEnv("CHUNK_SIZE", 500),
 };
